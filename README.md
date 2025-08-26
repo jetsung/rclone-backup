@@ -196,4 +196,3 @@ Apache License 2.0
 - https://framagit.org/jetsung/rclone-backup
 - https://gitcode.com/jetsung/rclone-backup
 - https://github.com/jetsung/rclone-backup
-- https://codeup.aliyun.com/jetsung/jetsung/rclone-backup

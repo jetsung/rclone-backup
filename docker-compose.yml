@@ -1,0 +1,26 @@
+services:
+  rclone-backup:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    # image: jetsung/rclone-backup:latest
+    container_name: rclone-backup
+    restart: unless-stopped
+    volumes:
+      # rclone 配置文件 (首次运行后会生成)
+      - ./data/rclone:/config/rclone
+      # 备份源目录 (根据需要修改)
+      - ./data/backup:/data/backup:ro
+      # - ./data/documents:/data/documents:ro
+      # - ./data/photos:/data/photos:ro
+      # 日志目录
+      - ./data/logs:/var/log/backup
+      # 备份配置文件 (可选，如果不挂载会使用默认配置)
+      - ./config/backup.json:/app/config/backup.json:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - RCLONE_CONFIG=/config/rclone/rclone.conf
+      - BACKUP_LOG_DIR=/var/log/backup
+      - BACKUP_CONFIG=/app/config/backup.json
+    # 如果需要网络访问某些云服务，可以取消注释
+    # network_mode: host

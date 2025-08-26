@@ -1,0 +1,74 @@
+{
+  "backup_jobs": [
+    {
+      "name": "documents_backup",
+      "enabled": false,
+      "source_path": "/data/documents",
+      "targets": [
+        {
+          "remote": "gdrive",
+          "path": "backup/documents",
+          "enabled": true
+        },
+        {
+          "remote": "onedrive",
+          "path": "backup/documents",
+          "enabled": true
+        }
+      ],
+      "schedule": "0 2 * * *",
+      "options": [
+        "--progress",
+        "--transfers=4",
+        "--checkers=8",
+        "--exclude=*.tmp",
+        "--exclude=*.log",
+        "--exclude=.DS_Store"
+      ]
+    },
+    {
+      "name": "photos_backup",
+      "enabled": false,
+      "source_path": "/data/photos",
+      "targets": [
+        {
+          "remote": "gdrive",
+          "path": "backup/photos",
+          "enabled": true
+        }
+      ],
+      "schedule": "0 3 * * 0",
+      "options": [
+        "--progress",
+        "--transfers=2",
+        "--checkers=4",
+        "--exclude=*.tmp"
+      ]
+    },
+    {
+      "name": "backup",
+      "enabled": false,
+      "source_path": "/data/backup",
+      "targets": [
+        {
+          "remote": "minio",
+          "path": "public/backup",
+          "enabled": true
+        }
+      ],
+      "schedule": "52 3 * * *",
+      "options": [
+        "--progress",
+        "--transfers=2",
+        "--checkers=4",
+        "--exclude=*.tmp"
+      ]
+    }
+  ],
+  "global_options": {
+    "log_level": "INFO",
+    "log_file": "/var/log/backup/backup.log",
+    "max_log_size": "10M",
+    "max_log_files": 5
+  }
+}

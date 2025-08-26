@@ -18,3 +18,11 @@ Thumbs.db
 
 # rclone 配置文件 (包含敏感信息)
 rclone.conf
+
+# act
+.actenv
+.actrc
+.actrcs
+.artifacts
+.secrets
+event.json
