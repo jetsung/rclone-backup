@@ -3,21 +3,31 @@
 JOB_NAME="$1"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
+# 获取日志文件路径
+BACKUP_LOG_FILE="${BACKUP_LOG_DIR}/backup.log"
+
+# 日志函数
+log_message() {
+    local message="$1"
+    echo "[$TIMESTAMP] $message" | tee -a "$BACKUP_LOG_FILE"
+}
+
 if [ -z "$JOB_NAME" ]; then
-    echo "[$TIMESTAMP] 错误: 未指定备份任务名称"
+    log_message "错误: 未指定备份任务名称"
     exit 1
 fi
 
-echo "[$TIMESTAMP] 开始执行备份任务: $JOB_NAME"
-
 # 确保日志目录存在
 mkdir -p "$BACKUP_LOG_DIR"
+touch "$BACKUP_LOG_FILE"
+
+log_message "开始执行备份任务: $JOB_NAME"
 
 # 从配置文件获取任务详情
 job_config=$(jq -r --arg name "$JOB_NAME" '.backup_jobs[] | select(.name == $name and .enabled == true)' "$BACKUP_CONFIG")
 
 if [ -z "$job_config" ] || [ "$job_config" = "null" ]; then
-    echo "[$TIMESTAMP] 错误: 找不到启用的备份任务 '$JOB_NAME'"
+    log_message "错误: 找不到启用的备份任务 '$JOB_NAME'"
     exit 1
 fi
 
@@ -26,12 +36,12 @@ source_path=$(echo "$job_config" | jq -r '.source_path')
 options=$(echo "$job_config" | jq -r '.options[]?' | tr '\n' ' ')
 targets=$(echo "$job_config" | jq -r '.targets[] | select(.enabled == true) | @base64')
 
-echo "[$TIMESTAMP] 源路径: $source_path"
-echo "[$TIMESTAMP] 备份选项: $options"
+log_message "源路径: $source_path"
+log_message "备份选项: $options"
 
 # 检查源路径是否存在
 if [ ! -d "$source_path" ]; then
-    echo "[$TIMESTAMP] 错误: 源路径不存在 '$source_path'"
+    log_message "错误: 源路径不存在 '$source_path'"
     exit 1
 fi
 
@@ -46,21 +56,21 @@ for target in $targets; do
     
     total_count=$((total_count + 1))
     
-    echo "[$TIMESTAMP] 开始备份到: $remote:$remote_path"
+    log_message "开始备份到: $remote:$remote_path"
     
     # 构建 rclone 命令
     rclone_cmd="rclone copy \"$source_path\" \"$remote:$remote_path\" $options"
     
     # 执行备份
-    if eval $rclone_cmd; then
-        echo "[$TIMESTAMP] 成功备份到: $remote:$remote_path"
+    if eval $rclone_cmd 2>&1 | tee -a "$BACKUP_LOG_FILE"; then
+        log_message "成功备份到: $remote:$remote_path"
         success_count=$((success_count + 1))
     else
-        echo "[$TIMESTAMP] 备份失败: $remote:$remote_path"
+        log_message "备份失败: $remote:$remote_path"
     fi
 done
 
-echo "[$TIMESTAMP] 备份任务 '$JOB_NAME' 完成: $success_count/$total_count 成功"
+log_message "备份任务 '$JOB_NAME' 完成: $success_count/$total_count 成功"
 
 if [ $success_count -eq $total_count ]; then
     exit 0

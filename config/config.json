@@ -65,9 +65,59 @@
       ]
     }
   ],
+  "sync_jobs": [
+    {
+      "name": "documents_sync",
+      "enabled": false,
+      "destination_path": "/data/synced/documents",
+      "sources": [
+        {
+          "remote": "gdrive",
+          "path": "shared/documents",
+          "enabled": true
+        },
+        {
+          "remote": "onedrive",
+          "path": "shared/documents",
+          "enabled": false
+        }
+      ],
+      "schedule": "0 1 * * *",
+      "sync_mode": "copy",
+      "options": [
+        "--progress",
+        "--transfers=4",
+        "--checkers=8",
+        "--exclude=*.tmp",
+        "--exclude=*.log",
+        "--exclude=.DS_Store"
+      ]
+    },
+    {
+      "name": "photos_sync",
+      "enabled": false,
+      "destination_path": "/data/synced/photos",
+      "sources": [
+        {
+          "remote": "gdrive",
+          "path": "shared/photos",
+          "enabled": true
+        }
+      ],
+      "schedule": "0 4 * * *",
+      "sync_mode": "sync",
+      "options": [
+        "--progress",
+        "--transfers=2",
+        "--checkers=4",
+        "--exclude=*.tmp"
+      ]
+    }
+  ],
   "global_options": {
     "log_level": "INFO",
     "log_file": "/var/log/backup/backup.log",
+    "sync_log_file": "/var/log/backup/sync.log",
     "max_log_size": "10M",
     "max_log_files": 5
   }

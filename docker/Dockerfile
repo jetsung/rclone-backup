@@ -27,7 +27,7 @@ RUN mkdir -p /config/rclone \
 # 设置环境变量
 ENV RCLONE_CONFIG=/config/rclone/rclone.conf
 ENV BACKUP_LOG_DIR=/var/log/backup
-ENV BACKUP_CONFIG=/app/config/backup.json
+ENV BACKUP_CONFIG=/app/config/config.json
 
 # 启动脚本
 COPY entrypoint.sh /entrypoint.sh

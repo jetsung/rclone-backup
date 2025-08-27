@@ -7,6 +7,8 @@ on:
     paths:
       - "docker/Dockerfile"
       - ".github/workflows/docker-dev.yml"
+      - "scripts/*.sh"
+      - "entrypoint.sh"
 
 env:
   GHCR_SLUG: ghcr.io/${{ github.repository }}
