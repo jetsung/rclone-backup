@@ -1,4 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# DEBUG 支持
+if [[ -n "${DEBUG:-}" ]]; then
+    set -eux
+else
+    set -euo pipefail
+fi
 
 # 文档备份后的示例 hook 脚本
 # 可以在这里添加通知、清理等操作

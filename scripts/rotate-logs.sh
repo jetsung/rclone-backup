@@ -1,4 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# DEBUG 支持
+if [[ -n "${DEBUG:-}" ]]; then
+    set -eux
+else
+    set -euo pipefail
+fi
 
 # 日志轮转脚本
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')

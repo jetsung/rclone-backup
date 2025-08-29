@@ -1,6 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
+# DEBUG 支持
+if [[ -n "${DEBUG:-}" ]]; then
+    set -eux
+else
+    set -euo pipefail
+fi
 
 echo "=== Rclone 定时备份服务启动 ==="
 

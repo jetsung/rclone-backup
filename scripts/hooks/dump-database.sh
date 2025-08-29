@@ -1,4 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# DEBUG 支持
+if [[ -n "${DEBUG:-}" ]]; then
+    set -eux
+else
+    set -euo pipefail
+fi
 
 # 数据库备份 hook 脚本示例
 # 支持 MySQL/MariaDB 和 PostgreSQL
@@ -29,8 +36,9 @@ log_hook_message "数据库主机: $DB_HOST:$DB_PORT"
 # 确保备份目录存在
 mkdir -p "$SOURCE_PATH"
 
-# 生成备份文件名
-BACKUP_FILE="$SOURCE_PATH/database_$(date '+%Y%m%d_%H%M%S').sql"
+# 生成备份文件名（使用日期格式）
+DATE_FORMATTED=$(date '+%Y%m%d')
+BACKUP_FILE="$SOURCE_PATH/database_${DATE_FORMATTED}.sql"
 
 case "$DB_TYPE" in
     "mysql"|"mariadb")

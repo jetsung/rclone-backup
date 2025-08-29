@@ -6,7 +6,13 @@ RUN apk add --no-cache \
     coreutils \
     dcron \
     jq \
-    curl
+    curl \
+    xz \
+    tar \
+    zip \
+    bzip2 \
+    gzip \
+    bc
 
 # 创建工作目录
 WORKDIR /app

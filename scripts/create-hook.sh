@@ -1,4 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# DEBUG 支持
+if [[ -n "${DEBUG:-}" ]]; then
+    set -eux
+else
+    set -euo pipefail
+fi
 
 # Hook 创建助手脚本
 
@@ -45,7 +52,14 @@ fi
 
 # 创建 hook 模板
 cat > "$HOOK_FILE" << EOF
-#!/bin/bash
+#!/usr/bin/env bash
+
+# DEBUG 支持
+if [[ -n "\${DEBUG:-}" ]]; then
+    set -eux
+else
+    set -euo pipefail
+fi
 
 # $HOOK_TYPE hook: $HOOK_NAME
 # 创建时间: $(date '+%Y-%m-%d %H:%M:%S')
@@ -53,7 +67,6 @@ cat > "$HOOK_FILE" << EOF
 # 从环境变量获取信息
 JOB_NAME="\${BACKUP_JOB_NAME}"
 SOURCE_PATH="\${BACKUP_SOURCE_PATH}"
-TIMESTAMP="\${BACKUP_TIMESTAMP}"
 LOG_FILE="\${BACKUP_LOG_FILE}"
 
 # 日志函数

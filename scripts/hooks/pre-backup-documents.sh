@@ -1,4 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# DEBUG 支持
+if [[ -n "${DEBUG:-}" ]]; then
+    set -eux
+else
+    set -euo pipefail
+fi
 
 # 文档备份前的示例 hook 脚本
 # 可以在这里添加文档整理、索引生成等操作
@@ -19,7 +26,8 @@ log_hook_message "处理路径: $SOURCE_PATH"
 
 # 示例：生成文件清单
 if [ -d "$SOURCE_PATH" ]; then
-    MANIFEST_FILE="$SOURCE_PATH/.backup_manifest_$(date '+%Y%m%d_%H%M%S').txt"
+    DATE_FORMATTED=$(date '+%Y%m%d')
+    MANIFEST_FILE="$SOURCE_PATH/.backup_manifest_${DATE_FORMATTED}.txt"
     log_hook_message "生成文件清单: $MANIFEST_FILE"
     
     find "$SOURCE_PATH" -type f -exec ls -lh {} \; > "$MANIFEST_FILE" 2>&1
