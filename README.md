@@ -80,6 +80,7 @@ docker restart rclone-backup
       "name": "documents_backup",
       "enabled": true,
       "source_path": "/data/documents",
+      "backup_mode": "copy",
       "targets": [
         {
           "remote": "gdrive",
@@ -125,6 +126,9 @@ docker restart rclone-backup
 - `name`: 备份任务名称
 - `enabled`: 是否启用此任务
 - `source_path`: 源目录路径
+- `backup_mode`: 备份模式
+  - `copy`: 只复制新文件和更新的文件 (推荐，默认)
+  - `sync`: 完全同步，会删除目标中不存在于源的文件
 - `targets`: 备份目标列表
   - `remote`: rclone 配置的远程名称
   - `path`: 远程路径

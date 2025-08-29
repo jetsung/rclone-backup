@@ -4,6 +4,7 @@
       "name": "documents_backup",
       "enabled": false,
       "source_path": "/data/documents",
+      "backup_mode": "copy",
       "targets": [
         {
           "remote": "gdrive",
@@ -30,6 +31,7 @@
       "name": "photos_backup",
       "enabled": false,
       "source_path": "/data/photos",
+      "backup_mode": "sync",
       "targets": [
         {
           "remote": "gdrive",
@@ -49,6 +51,7 @@
       "name": "backup",
       "enabled": false,
       "source_path": "/data/backup",
+      "backup_mode": "copy",
       "targets": [
         {
           "remote": "minio",

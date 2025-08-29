@@ -33,10 +33,12 @@ fi
 
 # 提取任务配置
 source_path=$(echo "$job_config" | jq -r '.source_path')
+backup_mode=$(echo "$job_config" | jq -r '.backup_mode // "copy"')
 options=$(echo "$job_config" | jq -r '.options[]?' | tr '\n' ' ')
 targets=$(echo "$job_config" | jq -r '.targets[] | select(.enabled == true) | @base64')
 
 log_message "源路径: $source_path"
+log_message "备份模式: $backup_mode"
 log_message "备份选项: $options"
 
 # 检查源路径是否存在
@@ -59,7 +61,20 @@ for target in $targets; do
     log_message "开始备份到: $remote:$remote_path"
     
     # 构建 rclone 命令
-    rclone_cmd="rclone copy \"$source_path\" \"$remote:$remote_path\" $options"
+    case "$backup_mode" in
+        "sync")
+            rclone_cmd="rclone sync \"$source_path\" \"$remote:$remote_path\" $options"
+            log_message "使用 sync 模式 (会删除目标中不存在于源的文件)"
+            ;;
+        "copy")
+            rclone_cmd="rclone copy \"$source_path\" \"$remote:$remote_path\" $options"
+            log_message "使用 copy 模式 (只复制新文件和更新的文件)"
+            ;;
+        *)
+            log_message "错误: 不支持的备份模式 '$backup_mode'"
+            continue
+            ;;
+    esac
     
     # 执行备份
     if eval $rclone_cmd 2>&1 | tee -a "$BACKUP_LOG_FILE"; then
