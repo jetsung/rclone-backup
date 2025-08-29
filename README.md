@@ -10,6 +10,7 @@
 - 📥 支持定时从云端同步数据到本地
 - 📝 详细的日志记录和轮转
 - 🔧 简单的配置管理
+- 🪝 支持备份前后的 Hook 脚本
 - 🐳 完全容器化部署
 
 ## 快速开始
@@ -93,7 +94,23 @@ docker restart rclone-backup
         "--progress",
         "--transfers=4",
         "--checkers=8"
-      ]
+      ],
+      "hooks": {
+        "pre_backup": {
+          "enabled": true,
+          "script": "/app/hooks/compress-backup.sh",
+          "timeout": 1800,
+          "fail_on_error": true,
+          "description": "压缩备份目录为 tar.xz 格式"
+        },
+        "post_backup": {
+          "enabled": true,
+          "script": "/app/hooks/cleanup-compressed.sh",
+          "timeout": 60,
+          "fail_on_error": false,
+          "description": "清理临时压缩文件"
+        }
+      }
     }
   ],
   "sync_jobs": [
@@ -135,6 +152,15 @@ docker restart rclone-backup
   - `enabled`: 是否启用此目标
 - `schedule`: cron 表达式 (分 时 日 月 周)
 - `options`: rclone 命令选项
+- `hooks`: Hook 脚本配置（可选）
+  - `pre_backup`: 备份前执行的脚本
+  - `post_backup`: 备份后执行的脚本
+  - Hook 配置参数：
+    - `enabled`: 是否启用此 Hook
+    - `script`: Hook 脚本路径
+    - `timeout`: 脚本执行超时时间（秒）
+    - `fail_on_error`: 脚本失败时是否终止备份任务
+    - `description`: Hook 描述（可选）
 
 #### 同步任务 (sync_jobs)
 - `name`: 同步任务名称
@@ -162,11 +188,21 @@ docker restart rclone-backup
 │   ├── sync-job.sh                 # 同步执行脚本
 │   ├── create-default-config.sh    # 创建默认备份配置
 │   ├── create-default-sync-config.sh # 创建默认同步配置
+│   ├── create-hook.sh              # Hook 创建助手脚本
+│   ├── test-hooks.sh               # Hook 功能测试脚本
 │   ├── setup-cron.sh               # 定时任务设置
 │   ├── rotate-logs.sh              # 日志轮转脚本
-│   └── test-logging.sh             # 测试日志功能
+│   ├── test-logging.sh             # 测试日志功能
+│   └── hooks/                      # Hook 脚本目录
+│       ├── compress-backup.sh      # 压缩备份示例（支持多种格式）
+│       ├── cleanup-compressed.sh   # 清理压缩文件示例
+│       ├── dump-database.sh        # 数据库备份示例
+│       ├── pre-backup-documents.sh # 文档备份前处理示例
+│       └── post-backup-documents.sh # 文档备份后处理示例
 ├── config/
 │   └── config.json                 # 备份和同步配置文件
+├── docs/
+│   └── hooks-examples.md           # Hook 配置示例文档
 ├── data/
 │   ├── rclone/                    # rclone 配置目录
 │   ├── backup/                    # 备份源目录
@@ -177,6 +213,158 @@ docker restart rclone-backup
 ├── entrypoint.sh
 └── README.md
 ```
+
+## Hook 功能
+
+Hook 功能允许您在备份前后执行自定义脚本，实现更灵活的备份流程。
+
+### Hook 类型
+
+- **pre_backup**: 在备份开始前执行，常用于：
+  - 压缩目录为归档文件
+  - 生成文件清单
+  - 停止相关服务
+  - 数据预处理
+
+- **post_backup**: 在备份完成后执行，常用于：
+  - 清理临时文件
+  - 发送通知
+  - 重启服务
+  - 生成报告
+
+### 创建自定义 Hook
+
+使用内置的 Hook 创建助手：
+
+```bash
+# 创建备份前 Hook
+docker exec rclone-backup /app/scripts/create-hook.sh pre-backup my-custom-hook
+
+# 创建备份后 Hook
+docker exec rclone-backup /app/scripts/create-hook.sh post-backup cleanup-hook
+```
+
+### Hook 脚本环境变量
+
+Hook 脚本执行时会自动设置以下环境变量：
+
+- `BACKUP_JOB_NAME`: 当前备份任务名称
+- `BACKUP_SOURCE_PATH`: 备份源路径
+- `BACKUP_TIMESTAMP`: 备份开始时间戳
+- `BACKUP_LOG_FILE`: 备份日志文件路径
+
+### Hook 配置示例
+
+#### 压缩备份示例
+
+```json
+{
+  "name": "compressed_backup",
+  "enabled": true,
+  "source_path": "/data/documents",
+  "backup_mode": "copy",
+  "targets": [
+    {
+      "remote": "gdrive",
+      "path": "backup/compressed",
+      "enabled": true
+    }
+  ],
+  "schedule": "0 2 * * *",
+  "hooks": {
+    "pre_backup": {
+      "enabled": true,
+      "script": "/app/hooks/compress-backup.sh",
+      "timeout": 1800,
+      "fail_on_error": true,
+      "description": "压缩目录为 tar.xz 格式"
+    },
+    "post_backup": {
+      "enabled": true,
+      "script": "/app/hooks/cleanup-compressed.sh",
+      "timeout": 60,
+      "fail_on_error": false,
+      "description": "清理临时压缩文件"
+    }
+  }
+}
+```
+
+#### 数据库备份示例
+
+```json
+{
+  "name": "database_backup",
+  "enabled": true,
+  "source_path": "/tmp/db-backup",
+  "backup_mode": "copy",
+  "targets": [
+    {
+      "remote": "s3",
+      "path": "database-backups",
+      "enabled": true
+    }
+  ],
+  "schedule": "0 3 * * *",
+  "hooks": {
+    "pre_backup": {
+      "enabled": true,
+      "script": "/app/hooks/dump-database.sh",
+      "timeout": 3600,
+      "fail_on_error": true,
+      "description": "导出数据库到临时目录"
+    },
+    "post_backup": {
+      "enabled": true,
+      "script": "/app/hooks/cleanup-db-dump.sh",
+      "timeout": 60,
+      "fail_on_error": false,
+      "description": "清理数据库导出文件"
+    }
+  }
+}
+```
+
+### 内置 Hook 示例
+
+项目提供了几个示例 Hook 脚本：
+
+1. **compress-backup.sh**: 将目录压缩为 tar.xz 格式
+2. **cleanup-compressed.sh**: 清理压缩产生的临时文件
+3. **pre-backup-documents.sh**: 文档备份前的预处理
+4. **post-backup-documents.sh**: 文档备份后的清理工作
+
+### Hook 最佳实践
+
+1. **错误处理**: 在 Hook 脚本中添加适当的错误检查
+2. **日志记录**: 使用提供的 `log_hook_message` 函数记录日志
+3. **超时设置**: 根据脚本复杂度设置合理的超时时间
+4. **权限管理**: 确保 Hook 脚本有适当的执行权限
+5. **测试验证**: 在生产环境使用前充分测试 Hook 脚本
+
+### 测试 Hook 功能
+
+项目提供了测试脚本来验证 Hook 功能：
+
+```bash
+# 运行 Hook 功能测试
+docker exec rclone-backup /app/scripts/test-hooks.sh
+```
+
+测试脚本会：
+- 创建测试环境和文件
+- 执行带 Hook 的备份任务
+- 验证压缩和清理功能
+- 显示详细的测试结果
+
+### 更多 Hook 示例
+
+查看 [Hook 配置示例文档](docs/hooks-examples.md) 获取更多实用的 Hook 配置示例，包括：
+- 数据库备份 (MySQL/PostgreSQL)
+- 网站备份
+- Docker 容器备份
+- 通知集成
+- 自定义压缩配置
 
 ## 使用示例
 
@@ -217,6 +405,12 @@ docker exec rclone-backup /app/scripts/backup-job.sh "documents_backup"
 
 # 执行特定的同步任务
 docker exec rclone-backup /app/scripts/sync-job.sh "documents_sync"
+
+# 创建自定义 Hook
+docker exec rclone-backup /app/scripts/create-hook.sh pre-backup compress-photos
+
+# 测试 Hook 功能
+docker exec rclone-backup /app/scripts/test-hooks.sh
 ```
 
 ### 管理 rclone 配置

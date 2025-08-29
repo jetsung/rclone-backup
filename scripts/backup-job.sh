@@ -12,6 +12,76 @@ log_message() {
     echo "[$TIMESTAMP] $message" | tee -a "$BACKUP_LOG_FILE"
 }
 
+# Hook 执行函数
+execute_hook() {
+    local hook_type="$1"
+    local hook_config="$2"
+    
+    if [ -z "$hook_config" ] || [ "$hook_config" = "null" ]; then
+        return 0
+    fi
+    
+    local enabled=$(echo "$hook_config" | jq -r '.enabled // false')
+    if [ "$enabled" != "true" ]; then
+        log_message "Hook $hook_type 已禁用，跳过执行"
+        return 0
+    fi
+    
+    local script=$(echo "$hook_config" | jq -r '.script')
+    local timeout=$(echo "$hook_config" | jq -r '.timeout // 300')
+    local fail_on_error=$(echo "$hook_config" | jq -r '.fail_on_error // true')
+    local description=$(echo "$hook_config" | jq -r '.description // ""')
+    
+    if [ ! -f "$script" ]; then
+        log_message "警告: Hook 脚本不存在: $script"
+        if [ "$fail_on_error" = "true" ]; then
+            return 1
+        else
+            return 0
+        fi
+    fi
+    
+    if [ ! -x "$script" ]; then
+        log_message "警告: Hook 脚本不可执行: $script"
+        if [ "$fail_on_error" = "true" ]; then
+            return 1
+        else
+            return 0
+        fi
+    fi
+    
+    log_message "执行 $hook_type hook: $script"
+    if [ -n "$description" ]; then
+        log_message "Hook 描述: $description"
+    fi
+    
+    # 设置环境变量供 hook 脚本使用
+    export BACKUP_JOB_NAME="$JOB_NAME"
+    export BACKUP_SOURCE_PATH="$source_path"
+    export BACKUP_TIMESTAMP="$TIMESTAMP"
+    export BACKUP_LOG_FILE="$BACKUP_LOG_FILE"
+    
+    # 使用 timeout 执行脚本
+    if timeout "$timeout" "$script" 2>&1 | tee -a "$BACKUP_LOG_FILE"; then
+        log_message "$hook_type hook 执行成功"
+        return 0
+    else
+        local exit_code=$?
+        if [ $exit_code -eq 124 ]; then
+            log_message "错误: $hook_type hook 执行超时 (${timeout}秒)"
+        else
+            log_message "错误: $hook_type hook 执行失败 (退出码: $exit_code)"
+        fi
+        
+        if [ "$fail_on_error" = "true" ]; then
+            return 1
+        else
+            log_message "忽略 hook 错误，继续执行备份"
+            return 0
+        fi
+    fi
+}
+
 if [ -z "$JOB_NAME" ]; then
     log_message "错误: 未指定备份任务名称"
     exit 1
@@ -37,6 +107,10 @@ backup_mode=$(echo "$job_config" | jq -r '.backup_mode // "copy"')
 options=$(echo "$job_config" | jq -r '.options[]?' | tr '\n' ' ')
 targets=$(echo "$job_config" | jq -r '.targets[] | select(.enabled == true) | @base64')
 
+# 提取 hook 配置
+pre_backup_hook=$(echo "$job_config" | jq -r '.hooks.pre_backup // null')
+post_backup_hook=$(echo "$job_config" | jq -r '.hooks.post_backup // null')
+
 log_message "源路径: $source_path"
 log_message "备份模式: $backup_mode"
 log_message "备份选项: $options"
@@ -44,6 +118,12 @@ log_message "备份选项: $options"
 # 检查源路径是否存在
 if [ ! -d "$source_path" ]; then
     log_message "错误: 源路径不存在 '$source_path'"
+    exit 1
+fi
+
+# 执行 pre-backup hook
+if ! execute_hook "pre-backup" "$pre_backup_hook"; then
+    log_message "错误: pre-backup hook 执行失败，终止备份任务"
     exit 1
 fi
 
@@ -87,8 +167,15 @@ done
 
 log_message "备份任务 '$JOB_NAME' 完成: $success_count/$total_count 成功"
 
+# 执行 post-backup hook
+if ! execute_hook "post-backup" "$post_backup_hook"; then
+    log_message "警告: post-backup hook 执行失败"
+fi
+
 if [ $success_count -eq $total_count ]; then
+    log_message "所有备份目标都成功完成"
     exit 0
 else
+    log_message "部分备份目标失败"
     exit 1
 fi
