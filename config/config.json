@@ -25,7 +25,21 @@
         "--exclude=*.tmp",
         "--exclude=*.log",
         "--exclude=.DS_Store"
-      ]
+      ],
+      "hooks": {
+        "pre_backup": {
+          "enabled": false,
+          "script": "/app/hooks/pre-backup-documents.sh",
+          "timeout": 300,
+          "fail_on_error": true
+        },
+        "post_backup": {
+          "enabled": false,
+          "script": "/app/hooks/post-backup-documents.sh",
+          "timeout": 60,
+          "fail_on_error": false
+        }
+      }
     },
     {
       "name": "photos_backup",
@@ -65,7 +79,51 @@
         "--transfers=2",
         "--checkers=4",
         "--exclude=*.tmp"
-      ]
+      ],
+      "hooks": {
+        "pre_backup": {
+          "enabled": true,
+          "script": "/app/hooks/compress-backup.sh",
+          "timeout": 1800,
+          "fail_on_error": true,
+          "description": "压缩备份目录为 tar.xz 格式"
+        }
+      }
+    },
+    {
+      "name": "database_backup",
+      "enabled": false,
+      "source_path": "/tmp/db-backup",
+      "backup_mode": "copy",
+      "targets": [
+        {
+          "remote": "s3",
+          "path": "database-backups",
+          "enabled": true
+        }
+      ],
+      "schedule": "0 1 * * *",
+      "options": [
+        "--progress",
+        "--transfers=1",
+        "--checkers=2"
+      ],
+      "hooks": {
+        "pre_backup": {
+          "enabled": true,
+          "script": "/app/hooks/dump-database.sh",
+          "timeout": 3600,
+          "fail_on_error": true,
+          "description": "导出数据库到临时目录"
+        },
+        "post_backup": {
+          "enabled": true,
+          "script": "/tmp/db-backup/cleanup.sh",
+          "timeout": 60,
+          "fail_on_error": false,
+          "description": "清理数据库导出文件"
+        }
+      }
     }
   ],
   "sync_jobs": [

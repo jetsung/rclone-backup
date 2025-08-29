@@ -1,4 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# DEBUG 支持
+if [[ -n "${DEBUG:-}" ]]; then
+    set -eux
+else
+    set -euo pipefail
+fi
 
 # 创建默认备份配置文件
 cat > "$BACKUP_CONFIG" << 'EOF'

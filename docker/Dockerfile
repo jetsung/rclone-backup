@@ -6,7 +6,13 @@ RUN apk add --no-cache \
     coreutils \
     dcron \
     jq \
-    curl
+    curl \
+    xz \
+    tar \
+    zip \
+    bzip2 \
+    gzip \
+    bc
 
 # 创建工作目录
 WORKDIR /app
@@ -16,13 +22,14 @@ COPY scripts/ /app/scripts/
 COPY config/ /app/config/
 
 # 设置脚本权限
-RUN chmod +x /app/scripts/*.sh
+RUN chmod +x /app/scripts/*.sh /app/scripts/hooks/*.sh
 
 # 创建必要的目录
 RUN mkdir -p /config/rclone \
     /data/backup \
     /var/log/backup \
-    /etc/crontabs
+    /etc/crontabs \
+    /app/hooks
 
 # 设置环境变量
 ENV RCLONE_CONFIG=/config/rclone/rclone.conf
