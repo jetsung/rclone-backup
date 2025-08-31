@@ -7,7 +7,7 @@ else
     set -euo pipefail
 fi
 
-JOB_NAME="$1"
+JOB_NAME="${1,,}"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
 # 获取日志文件路径

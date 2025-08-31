@@ -33,7 +33,7 @@ if [ ! -f "$BACKUP_CONFIG" ]; then
 fi
 
 # 设置定时任务
-echo "设置定时备份任务..."
+#echo "设置定时备份和同步任务..."
 /app/scripts/setup-cron.sh
 
 # 启动 cron 服务

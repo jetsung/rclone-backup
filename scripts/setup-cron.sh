@@ -15,7 +15,7 @@ echo "设置定时备份和同步任务..."
 # 从配置文件读取备份任务
 if [ -f "$BACKUP_CONFIG" ]; then
     # 使用 jq 解析 JSON 配置 - 备份任务
-    backup_jobs=$(jq -r '.backup_jobs[] | select(.enabled == true) | @base64' "$BACKUP_CONFIG")
+    backup_jobs=$(jq -r '.backup_jobs[]? | select(.enabled == true) | @base64' "$BACKUP_CONFIG")
     
     for job in $backup_jobs; do
         # 解码 base64
